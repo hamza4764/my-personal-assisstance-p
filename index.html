@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Personal Assistant</title>
+<style>
+:root{--bg:#f7f5f1;--panel:#fff;--ink:#241f1a;--muted:#6b645b;--line:#ded8cf;--accent:#a8470c;--accent-ink:#fff;--danger:#b42318;--hover:#f0ece5;--hi:#b42318;--md:#a15c07;--lo:#2d6a4f}
+@media (prefers-color-scheme:dark){:root{--bg:#17140f;--panel:#201c16;--ink:#efe9df;--muted:#a59d90;--line:#37312a;--accent:#f4a259;--accent-ink:#261405;--danger:#f97066;--hover:#2a251d;--hi:#f97066;--md:#f4b860;--lo:#7bd3a1}}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 "Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 12px;cursor:pointer}
+button:hover{background:var(--hover)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button.danger{color:var(--danger)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+header{background:var(--panel);border-bottom:1px solid var(--line);padding:12px 20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+header h1{font-size:19px;margin:0}
+nav{display:flex;gap:4px;flex:1}
+nav button{border:0;background:none;padding:6px 14px}
+nav button.on{background:var(--hover);font-weight:600;box-shadow:inset 0 -3px var(--accent)}
+main{max-width:980px;margin:0 auto;padding:20px}
+h2{font-size:20px;margin:0 0 4px}
+h3{font-size:15px;margin:22px 0 8px}
+.sub{color:var(--muted);font-size:13px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+ul{list-style:none;margin:0;padding:0}
+.row{display:flex;gap:12px;align-items:center;justify-content:space-between;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-bottom:8px}
+.row.over{border-left:4px solid var(--hi)}
+.main{min-width:0}
+.meta{font-size:13px;color:var(--muted)}
+.acts{display:flex;gap:6px;flex-shrink:0}
+.acts button{padding:3px 9px;font-size:13px}
+.pill{font-size:12px;font-weight:600;padding:1px 8px;border-radius:99px;border:1px solid currentColor}
+.High{color:var(--hi)}.Medium{color:var(--md)}.Low{color:var(--lo)}
+.rb{font-size:12px;border-radius:4px;padding:1px 6px;border:1px dashed var(--muted)}
+.rb.on{border:1px solid var(--lo);color:var(--lo)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:12px 0}
+.card ol{margin:6px 0 0;padding-left:20px}
+.empty{color:var(--muted);padding:6px 0}
+.blk{display:grid;grid-template-columns:92px 1fr;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)}
+.blk.meeting{font-weight:600}.blk.break{color:var(--muted)}
+.day{display:flex;justify-content:space-between;gap:10px;padding:2px 0}
+#alerts .al{background:var(--accent);color:var(--accent-ink);padding:10px 20px;display:flex;justify-content:space-between;gap:12px}
+#alerts button{background:none;border-color:currentColor;color:inherit}
+dialog{border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);width:min(520px,94vw);padding:20px}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog h3{margin-top:0}
+label.f{display:block;margin-bottom:10px;font-size:13px;color:var(--muted)}
+label.f input,label.f select,label.f textarea{display:block;width:100%;margin-top:3px;padding:7px 9px;background:var(--bg);border:1px solid var(--line);border-radius:6px;font-size:15px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btns{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}
+.chk{display:flex;gap:8px;align-items:center;font-size:14px;margin:4px 0 10px}
+</style>
+</head>
+<body>
+<div id="alerts" role="alert"></div>
+<header>
+  <h1>My Personal Assistant</h1>
+  <nav id="nav"></nav>
+  <button class="primary" data-a="newTask">New task</button>
+  <button data-a="newMeeting">New meeting</button>
+</header>
+<main id="view"></main>
+
+<dialog id="dT"><form method="dialog" id="fT"><h3 id="tT"></h3>
+  <label class="f">Task<input id="tTitle" required></label>
+  <div class="two">
+    <label class="f">Priority<select id="tPri"><option>High</option><option selected>Medium</option><option>Low</option></select></label>
+    <label class="f">Estimated duration (minutes)<input id="tDur" type="number" min="5" step="5" value="30"></label>
+    <label class="f">Due date<input id="tDate" type="date"></label>
+    <label class="f">Due time<input id="tTime" type="time"></label>
+  </div>
+  <label class="f">Reminder time<input id="tRem" type="datetime-local"></label>
+  <label class="chk"><input type="checkbox" id="tSched" checked> Alert me in this app at the reminder time (works while this page is open in Chrome)</label>
+  <label class="f">Status<select id="tStat"><option value="pending">Pending</option><option value="done">Completed</option></select></label>
+  <div class="btns"><button type="button" data-a="closeT">Cancel</button><button class="primary">Save task</button></div>
+</form></dialog>
+
+<dialog id="dM"><form method="dialog" id="fM"><h3 id="tM"></h3>
+  <label class="f">Meeting title<input id="mTitle" required></label>
+  <div class="two">
+    <label class="f">Date<input id="mDate" type="date" required></label>
+    <label class="f">Start time<input id="mTime" type="time" required></label>
+    <label class="f">Duration (minutes)<input id="mDur" type="number" min="5" step="5" value="30"></label>
+    <label class="f">Reminder<select id="mRem"><option value="0">None</option><option value="10">10 minutes before</option><option value="15" selected>15 minutes before</option><option value="30">30 minutes before</option><option value="60">1 hour before</option></select></label>
+  </div>
+  <label class="f">Participants<input id="mPeople" placeholder="Names, separated by commas"></label>
+  <label class="f">Agenda and talking points<textarea id="mAgenda" rows="3"></textarea></label>
+  <label class="f">Meeting notes (start action items with “Action:” or “- [ ]”)<textarea id="mNotes" rows="4"></textarea></label>
+  <div class="btns"><button type="button" data-a="mkActions">Create tasks from action items</button><button type="button" data-a="copyNotes">Copy notes for summary</button></div>
+  <div class="btns"><button type="button" data-a="closeM">Cancel</button><button class="primary">Save meeting</button></div>
+</form></dialog>
+
+<input type="file" id="imp" accept=".json" hidden>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const uid = () => Math.random().toString(36).slice(2, 9);
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const todayStr = () => ymd(new Date());
+const addDays = (s, n) => { const d = new Date(s + 'T00:00'); d.setDate(d.getDate() + n); return ymd(d); };
+const mins = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+const hm = m => pad(Math.floor(m / 60)) + ':' + pad(m % 60);
+const dt = (d, t) => new Date(d + 'T' + (t || '23:59'));
+const longDate = s => new Date(s + 'T00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+const shortDate = s => new Date(s + 'T00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+const fmtRem = r => new Date(r).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+let S = { tasks: [], meetings: [], set: { start: '09:00', end: '17:00' } };
+try { Object.assign(S, JSON.parse(localStorage.getItem('assistant') || '{}')); } catch (e) {}
+const save = () => { try { localStorage.setItem('assistant', JSON.stringify(S)); } catch (e) { alertUser('This browser blocked saving. Use Export backup on the Today page to keep your data.'); } };
+let view = 'today', filter = 'pending', panel = '', editing = null, remTouched = false;
+
+/* task logic */
+const W = { High: 3, Medium: 2, Low: 1 };
+const isOver = t => t.status === 'pending' && t.date && dt(t.date, t.time) < new Date();
+const score = t => { let s = W[t.pri] * 10; const td = todayStr(); if (t.date) { if (t.date < td) s += 15; else if (t.date === td) s += 10; else if (t.date === addDays(td, 1)) s += 5; } return s - (t.dur || 30) / 100; };
+const pending = () => S.tasks.filter(t => t.status === 'pending').sort((a, b) => score(b) - score(a));
+function suggest(pri, date, time) {
+  if (!date) return '';
+  const due = dt(date, time || '17:00'), now = new Date(); let r;
+  if (due < now) return '';
+  if (pri === 'High') r = new Date(due - 120 * 60000);
+  else if (pri === 'Medium') r = new Date(date + 'T09:00');
+  else r = new Date(addDays(date, -1) + 'T09:00');
+  if (r < now) r = new Date(now.getTime() + 5 * 60000);
+  return ymd(r) + 'T' + pad(r.getHours()) + ':' + pad(r.getMinutes());
+}
+const remBadge = t => !t.rem ? '' : t.remState === 'scheduled' ? `<span class="rb on">Reminder scheduled ${fmtRem(t.rem)}</span>` : t.remState === 'fired' ? '<span class="rb">Reminder already shown</span>' : `<span class="rb">Suggested reminder ${fmtRem(t.rem)}, not scheduled</span>`;
+
+/* reminders: only work while this page is open */
+function alertUser(text) {
+  const d = document.createElement('div'); d.className = 'al';
+  d.innerHTML = '<span></span><button>Dismiss</button>'; d.firstChild.textContent = text; d.lastChild.onclick = () => d.remove();
+  $('#alerts').appendChild(d);
+  if ('Notification' in window && Notification.permission === 'granted') new Notification('Reminder', { body: text });
+}
+function tick() {
+  const now = new Date(); let ch = false;
+  S.tasks.forEach(t => { if (t.status === 'pending' && t.remState === 'scheduled' && t.rem && new Date(t.rem) <= now) { t.remState = 'fired'; ch = true; alertUser('Task: ' + t.title + (t.date ? ' (due ' + t.date + (t.time ? ' ' + t.time : '') + ')' : '') + (now - new Date(t.rem) > 3600000 ? ' [missed while the page was closed]' : '')); } });
+  S.meetings.forEach(m => { if (m.remState === 'scheduled' && m.rem && new Date(m.rem) <= now) { m.remState = 'fired'; ch = true; alertUser('Meeting: ' + m.title + ' at ' + m.time + (now - new Date(m.rem) > 3600000 ? ' [missed while the page was closed]' : '')); } });
+  if (ch) { save(); render(); }
+}
+setInterval(tick, 20000);
+
+/* planning */
+function planDay() {
+  const td = todayStr(), now = new Date(), end = mins(S.set.end);
+  let t = Math.max(mins(S.set.start), Math.ceil((now.getHours() * 60 + now.getMinutes()) / 5) * 5);
+  const busy = S.meetings.filter(m => m.date === td).map(m => ({ s: mins(m.time), e: mins(m.time) + (+m.dur || 30), label: m.title, type: 'meeting' }));
+  busy.push({ s: 750, e: 780, label: 'Lunch break', type: 'break' });
+  busy.sort((a, b) => a.s - b.s);
+  const blocks = [...busy], left = [];
+  pending().filter(k => !k.date || k.date <= addDays(td, 1) || k.pri === 'High').forEach(k => {
+    const d = +k.dur || 30; let s = t;
+    for (let i = 0; i < 30; i++) { const c = busy.find(b => s < b.e && s + d > b.s); if (c) s = c.e; else break; }
+    if (s + d <= end) {
+      blocks.push({ s, e: s + d, label: k.title, type: 'task', pri: k.pri }); t = s + d;
+      if (d >= 45 && t + 10 <= end && !busy.some(b => t < b.e && t + 10 > b.s)) { blocks.push({ s: t, e: t + 10, label: 'Short break', type: 'break' }); t += 10; }
+    } else left.push(k);
+  });
+  return { blocks: blocks.sort((a, b) => a.s - b.s), left };
+}
+function whatsNext() {
+  const p = pending(), td = todayStr(), nowM = new Date().getHours() * 60 + new Date().getMinutes();
+  const nm = S.meetings.filter(m => m.date === td && mins(m.time) >= nowM).sort((a, b) => mins(a.time) - mins(b.time))[0];
+  let h = '<h3>What’s next?</h3>';
+  if (!p.length) h += '<p class="empty">No pending tasks. Add one with New task.</p>';
+  else { const k = p[0]; h += `<p><b>${esc(k.title)}</b><br><span class="meta">${k.pri} priority, ${k.date ? 'due ' + k.date + (k.time ? ' ' + k.time : '') : 'no due date'}, about ${k.dur} minutes${isOver(k) ? ', overdue' : ''}. It ranks first because of its priority and deadline.</span></p>`; }
+  if (nm) { const gap = mins(nm.time) - nowM; h += `<p class="meta">Heads up: “${esc(nm.title)}” starts at ${nm.time}${gap <= 60 ? ' (in ' + gap + ' minutes)' : ''}.</p>`; }
+  return h;
+}
+function planHtml() {
+  const { blocks, left } = planDay();
+  let h = '<h3>Your plan for today</h3>' + blocks.map(b => `<div class="blk ${b.type}"><span>${hm(b.s)}–${hm(b.e)}</span><span>${esc(b.label)}${b.pri ? ' <span class="pill ' + b.pri + '">' + b.pri + '</span>' : ''}</span></div>`).join('');
+  if (!blocks.some(b => b.type === 'task')) h += '<p class="empty">No tasks could be placed in the rest of your workday.</p>';
+  if (left.length) h += '<p class="meta">Did not fit today: ' + left.map(k => esc(k.title)).join(', ') + '. Consider moving them to tomorrow.</p>';
+  return h;
+}
+
+/* rendering */
+const taskRow = t => `<li class="row ${isOver(t) ? 'over' : ''}"><div class="main"><b>${esc(t.title)}</b><div class="meta"><span class="pill ${t.pri}">${t.pri}</span> ${t.date ? 'Due ' + t.date + (t.time ? ' ' + t.time : '') : 'No due date'}, ${t.dur} min ${remBadge(t)}</div></div><div class="acts">${t.status === 'pending' ? `<button data-a="done" data-id="${t.id}">Task completed</button>` : `<button data-a="undo" data-id="${t.id}">Reopen</button>`}<button data-a="editT" data-id="${t.id}">Edit</button><button class="danger" data-a="delT" data-id="${t.id}">Delete</button></div></li>`;
+const meetRow = m => `<li class="row"><div class="main"><b>${esc(m.title)}</b><div class="meta">${shortDate(m.date)}, ${m.time} for ${m.dur} min${m.people ? ', with ' + esc(m.people) : ''} ${m.remState === 'scheduled' ? '<span class="rb on">Reminder scheduled</span>' : m.remState === 'fired' ? '<span class="rb">Reminder already shown</span>' : ''}</div></div><div class="acts"><button data-a="editM" data-id="${m.id}">Prepare / notes</button><button class="danger" data-a="delM" data-id="${m.id}">Delete</button></div></li>`;
+const list = (arr, fn, none) => arr.length ? '<ul>' + arr.map(fn).join('') + '</ul>' : `<p class="empty">${none}</p>`;
+
+function render() {
+  $('#nav').innerHTML = [['today', 'Today'], ['tasks', 'Tasks'], ['meetings', 'Meetings'], ['week', 'Week']].map(([k, n]) => `<button data-a="nav" data-id="${k}" class="${view === k ? 'on' : ''}">${n}</button>`).join('');
+  const td = todayStr(), p = pending(), v = $('#view');
+  if (view === 'today') {
+    const tm = S.meetings.filter(m => m.date === td).sort((a, b) => a.time.localeCompare(b.time));
+    const carried = p.filter(t => t.date && t.date < td), dueToday = p.filter(t => t.date === td);
+    const rem = [...S.tasks.filter(t => t.status === 'pending' && t.rem && t.rem.startsWith(td)).map(t => ({ at: t.rem, x: 'Task: ' + t.title, st: t.remState })), ...S.meetings.filter(m => m.rem && m.rem.startsWith(td)).map(m => ({ at: m.rem, x: 'Meeting: ' + m.title, st: m.remState }))].sort((a, b) => a.at.localeCompare(b.at));
+    v.innerHTML = `<h2>${longDate(td)}</h2><div class="sub">Reminders only alert you while this page is open in Chrome.</div>
+    <div class="bar"><button class="primary" data-a="plan">Plan my day</button><button data-a="next">What’s next?</button></div>
+    ${panel ? '<div class="card">' + panel + '</div>' : ''}
+    <h3>Top three priorities</h3>${p.length ? '<ol>' + p.slice(0, 3).map(t => `<li><b>${esc(t.title)}</b> <span class="pill ${t.pri}">${t.pri}</span> <span class="meta">${t.date ? 'due ' + t.date : 'no due date'}</span></li>`).join('') + '</ol>' : '<p class="empty">Nothing pending. Add a task to get started.</p>'}
+    <h3>Meetings today</h3>${list(tm, meetRow, 'No meetings today.')}
+    <h3>Due today</h3>${list(dueToday, taskRow, 'Nothing due today.')}
+    <h3>Carried forward (overdue)</h3>${list(carried, taskRow, 'Nothing carried over from earlier days.')}
+    <h3>Reminders today</h3>${rem.length ? '<ul>' + rem.map(r => `<li class="row"><span>${esc(r.x)}, ${new Date(r.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span><span class="rb ${r.st === 'scheduled' ? 'on' : ''}">${r.st === 'scheduled' ? 'Scheduled' : r.st === 'fired' ? 'Already shown' : 'Suggested only'}</span></li>`).join('') + '</ul>' : '<p class="empty">No reminders for today.</p>'}
+    <h3>Settings and backup</h3><div class="card"><div class="bar">
+      <label class="meta">Workday starts <input type="time" id="sStart" value="${S.set.start}"></label>
+      <label class="meta">ends <input type="time" id="sEnd" value="${S.set.end}"></label>
+      <button data-a="notif">Turn on desktop alerts</button><button data-a="export">Export backup</button><button data-a="import">Import backup</button></div></div>`;
+  } else if (view === 'tasks') {
+    const f = { pending: p, over: p.filter(isOver), done: S.tasks.filter(t => t.status === 'done') }[filter];
+    v.innerHTML = `<h2>Tasks</h2><div class="bar">${[['pending', 'Pending (' + p.length + ')'], ['over', 'Overdue (' + p.filter(isOver).length + ')'], ['done', 'Completed (' + S.tasks.filter(t => t.status === 'done').length + ')']].map(([k, n]) => `<button data-a="filt" data-id="${k}" class="${filter === k ? 'primary' : ''}">${n}</button>`).join('')}</div>${list(f, taskRow, 'No tasks here.')}`;
+  } else if (view === 'meetings') {
+    const up = S.meetings.filter(m => m.date >= td).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)), past = S.meetings.filter(m => m.date < td).sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
+    v.innerHTML = `<h2>Meetings</h2><h3>Upcoming</h3>${list(up, meetRow, 'No upcoming meetings.')}<h3>Past (open to add notes and action items)</h3>${list(past, meetRow, 'No past meetings.')}`;
+  } else {
+    const cap = (mins(S.set.end) - mins(S.set.start) - 30) / 60;
+    let h = '<h2>Your week</h2><div class="sub">Task hours are estimates from the durations you entered.</div>';
+    for (let i = 0; i < 7; i++) {
+      const d = addDays(td, i), ms = S.meetings.filter(m => m.date === d).sort((a, b) => a.time.localeCompare(b.time)), ts = p.filter(t => t.date === d || (i === 0 && t.date && t.date < d));
+      const hrs = (ts.reduce((a, t) => a + (+t.dur || 30), 0) + ms.reduce((a, m) => a + (+m.dur || 30), 0)) / 60;
+      h += `<div class="card"><div class="day"><b>${i === 0 ? 'Today, ' : ''}${shortDate(d)}</b><span class="${hrs > cap ? 'High' : 'meta'}">${hrs.toFixed(1)} of ${cap.toFixed(1)} hours${hrs > cap ? ', overloaded: move something' : ''}</span></div>${ms.map(m => `<div class="meta">${m.time} Meeting: ${esc(m.title)}</div>`).join('')}${ts.map(t => `<div>${esc(t.title)} <span class="pill ${t.pri}">${t.pri}</span></div>`).join('')}${!ms.length && !ts.length ? '<div class="empty">Nothing scheduled.</div>' : ''}</div>`;
+    }
+    const und = p.filter(t => !t.date);
+    if (und.length) h += '<h3>No due date yet</h3>' + list(und, taskRow, '');
+    v.innerHTML = h;
+  }
+}
+
+/* dialogs */
+function openTask(id) {
+  editing = id; const t = id ? S.tasks.find(x => x.id === id) : { title: '', pri: 'Medium', dur: 30, date: '', time: '', rem: '', remState: '', status: 'pending' };
+  $('#tT').textContent = id ? 'Edit task' : 'New task';
+  $('#tTitle').value = t.title; $('#tPri').value = t.pri; $('#tDur').value = t.dur; $('#tDate').value = t.date; $('#tTime').value = t.time; $('#tRem').value = t.rem; $('#tStat').value = t.status;
+  $('#tSched').checked = id ? t.remState === 'scheduled' : true; remTouched = !!id && !!t.rem;
+  $('#dT').showModal(); $('#tTitle').focus();
+}
+['tPri', 'tDate', 'tTime'].forEach(i => $('#' + i).addEventListener('change', () => { if (!remTouched) $('#tRem').value = suggest($('#tPri').value, $('#tDate').value, $('#tTime').value); }));
+$('#tRem').addEventListener('input', () => remTouched = true);
+$('#fT').onsubmit = () => {
+  const o = { title: $('#tTitle').value.trim(), pri: $('#tPri').value, dur: +$('#tDur').value || 30, date: $('#tDate').value, time: $('#tTime').value, rem: $('#tRem').value, status: $('#tStat').value };
+  o.remState = o.rem ? ($('#tSched').checked ? 'scheduled' : 'suggested') : '';
+  if (editing) { const t = S.tasks.find(x => x.id === editing); if (t.rem === o.rem && t.remState === 'fired' && o.remState === 'scheduled') o.remState = 'fired'; Object.assign(t, o); } else S.tasks.push({ id: uid(), ...o });
+  save(); render();
+};
+function openMeet(id) {
+  editing = id; const m = id ? S.meetings.find(x => x.id === id) : { title: '', date: todayStr(), time: '', dur: 30, people: '', agenda: '', notes: '', remMin: 15 };
+  $('#tM').textContent = id ? 'Meeting preparation and notes' : 'New meeting';
+  $('#mTitle').value = m.title; $('#mDate').value = m.date; $('#mTime').value = m.time; $('#mDur').value = m.dur; $('#mPeople').value = m.people; $('#mAgenda').value = m.agenda; $('#mNotes').value = m.notes; $('#mRem').value = m.remMin ?? 15;
+  $('#dM').showModal();
+}
+$('#fM').onsubmit = () => {
+  const o = { title: $('#mTitle').value.trim(), date: $('#mDate').value, time: $('#mTime').value, dur: +$('#mDur').value || 30, people: $('#mPeople').value.trim(), agenda: $('#mAgenda').value, notes: $('#mNotes').value, remMin: +$('#mRem').value };
+  const at = new Date(dt(o.date, o.time) - o.remMin * 60000);
+  o.rem = o.remMin ? ymd(at) + 'T' + pad(at.getHours()) + ':' + pad(at.getMinutes()) : '';
+  o.remState = o.remMin ? (at > new Date() ? 'scheduled' : '') : '';
+  if (editing) Object.assign(S.meetings.find(x => x.id === editing), o); else S.meetings.push({ id: uid(), ...o });
+  save(); render();
+};
+
+/* actions */
+function actionItems() { return $('#mNotes').value.split('\n').map(l => l.trim().match(/^(?:action:|todo:|-\s*\[\s*\])\s*(.+)/i)).filter(Boolean).map(x => x[1].trim()); }
+const acts = {
+  nav: id => { view = id; panel = ''; render(); },
+  filt: id => { filter = id; render(); },
+  newTask: () => openTask(null), editT: id => openTask(id),
+  newMeeting: () => openMeet(null), editM: id => openMeet(id),
+  closeT: () => $('#dT').close(), closeM: () => $('#dM').close(),
+  done: id => { const t = S.tasks.find(x => x.id === id); t.status = 'done'; save(); render(); },
+  undo: id => { S.tasks.find(x => x.id === id).status = 'pending'; save(); render(); },
+  delT: id => { if (confirm('Delete this task?')) { S.tasks = S.tasks.filter(x => x.id !== id); save(); render(); } },
+  delM: id => { if (confirm('Delete this meeting?')) { S.meetings = S.meetings.filter(x => x.id !== id); save(); render(); } },
+  plan: () => { panel = planHtml(); render(); }, next: () => { panel = whatsNext(); render(); },
+  mkActions: () => {
+    const items = actionItems().filter(x => !S.tasks.some(t => t.title === x));
+    items.forEach(x => S.tasks.push({ id: uid(), title: x, pri: 'Medium', dur: 30, date: '', time: '', rem: '', remState: '', status: 'pending' }));
+    save(); alert(items.length ? items.length + ' task(s) created from your action items.' : 'No new action items found. Start a line with “Action:” or “- [ ]”.'); render();
+  },
+  copyNotes: async () => {
+    const txt = 'Summarize these meeting notes and list the action items with owners and deadlines.\n\nMeeting: ' + $('#mTitle').value + '\nParticipants: ' + $('#mPeople').value + '\n\n' + $('#mNotes').value;
+    try { await navigator.clipboard.writeText(txt); alert('Copied. Paste it into Claude to get a summary.'); } catch (e) { alert('Copy was blocked by the browser.'); }
+  },
+  notif: async () => { if (!('Notification' in window)) return alert('This browser does not support desktop alerts. In-app alerts still work.'); const r = await Notification.requestPermission(); alert(r === 'granted' ? 'Desktop alerts are on. They still need this page open.' : 'Desktop alerts are off. In-app alerts will still appear at the top of this page.'); },
+  export: () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' })); a.download = 'assistant-backup-' + todayStr() + '.json'; a.click(); URL.revokeObjectURL(a.href); },
+  import: () => $('#imp').click()
+};
+document.addEventListener('click', e => { const b = e.target.closest('[data-a]'); if (b && acts[b.dataset.a]) acts[b.dataset.a](b.dataset.id); });
+document.addEventListener('change', e => { if (e.target.id === 'sStart' || e.target.id === 'sEnd') { S.set.start = $('#sStart').value || '09:00'; S.set.end = $('#sEnd').value || '17:00'; save(); } });
+$('#imp').onchange = async e => {
+  try { const d = JSON.parse(await e.target.files[0].text()); if (!Array.isArray(d.tasks) || !Array.isArray(d.meetings)) throw 0; if (confirm('Replace your current data with this backup?')) { S = { set: { start: '09:00', end: '17:00' }, ...d }; save(); render(); } } catch (x) { alert('That file isn’t a backup from this app.'); }
+  e.target.value = '';
+};
+tick(); render();
+</script>
+</body>
+</html>
